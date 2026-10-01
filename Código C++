@@ -1,0 +1,58 @@
+//Versão mais básica funcional (LED de alerta de falhas não programado ainda)
+
+/************************************************************************************************************
+Trabalho Interdiciplinar 2026.2
+
+Esteira Seletora de Materiais Metálicos
+
+Cairo Araújo Lima
+Guilherme Henrique Faria
+Jõao Paulo Braga
+Lucas Salles Santana Ferreira
+Philipe Eduardo Faria
+*************************************************************************************************************/
+//declaração das variáveis
+bool sensorIndutivo, sensorPresencaDeObjeto, sensorPontoDeDeteccao;
+
+  #define I INPUT
+  #define O OUTPUT
+  #define H HIGH
+  #define L LOW
+
+void setup() {
+//definição das entradas e saídas (INPUT's e OUTPUT's)
+      pinMode(2,O), pinMode(3,O), pinMode(4,O), pinMode(5,O), pinMode(6,O);
+      pinMode(10,I),pinMode(11,I),pinMode(12,I);
+}
+
+void loop() {
+//atribuíndo às variáveis as leituras dos sensores
+sensorPresencaDeObjeto = digitalRead(11);
+sensorPontoDeDeteccao = digitalRead(10);
+
+//bloco de código da lógica de separação dos materiais 
+  if(sensorPresencaDeObjeto==H)
+  digitalWrite(2,H);
+  
+  if(sensorPontoDeDeteccao==H){
+    delay(50);
+    digitalWrite(2,L);
+    delay(2000);
+    sensorIndutivo = digitalRead(12);
+  if(sensorIndutivo==H){
+    digitalWrite(3,H);
+    digitalWrite(6,H);
+    delay(5000);
+    digitalWrite(6,L);
+    delay(2000);
+    digitalWrite(3,L);
+    delay(500);
+  } else{
+    digitalWrite(4,H);
+    delay(500);
+    digitalWrite(2,H);
+    delay(5000);
+    digitalWrite(4,L);
+    digitalWrite(2,L);
+  }}
+}
