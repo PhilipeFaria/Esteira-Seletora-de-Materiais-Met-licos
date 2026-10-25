@@ -35,9 +35,9 @@ O projeto é desenvolvido em duas frentes: a lógica e o circuito são validados
 | Arduino Nano | Controlador, alimentado por 12 V no VIN | Arduino Nano | Arduino Nano |
 | Sensor indutivo (PNP, 12 V) | Identifica metal | Botão 1 (tecla `1`) | Sensor indutivo |
 | Sensor infravermelho de presença (PNP, 5 V) | Início do processo, peça colocada na esteira | Botão 2 (tecla `2`) | Sensor infravermelho |
-| Sensor infravermelho de detecção (PNP, 5 V) | Ponto de análise | Botão 3 (tecla `3`) | Sensor infravermelho |
+| Sensor infravermelho de detecção (PNP, 5 V) | Detecta a chegada da peça; o indutivo fica logo depois dele | Botão 3 (tecla `3`) | Sensor infravermelho |
 | Módulo relé | Aciona o motor da esteira | Módulo relé | Módulo relé |
-| Motor da esteira | Move a peça | LED ciano no módulo relé) | Motor da esteira |
+| Motor da esteira | Move a peça | LED ciano no módulo relé | Motor da esteira |
 | M.R.P. | Retira a peça metálica | LED no pino 6 | Mecanismo de retirada |
 | LEDs indicadores | Metal, não metal e erro | LEDs | LEDs |
 
@@ -50,7 +50,7 @@ O projeto é desenvolvido em duas frentes: a lógica e o circuito são validados
 | 4 | Saída | LED de material **não metálico** |
 | 5 | Saída | LED amarelo de **erro** |
 | 6 | Saída | Aciona o **M.R.P.** |
-| 10 | Entrada | Sensor infravermelho de **detecção** (ponto de análise) |
+| 10 | Entrada | Sensor infravermelho de **detecção** (chegada da peça ao ponto de análise) |
 | 11 | Entrada | Sensor infravermelho de **presença** (início do processo) |
 | 12 | Entrada | Sensor **indutivo** (identifica metal) |
 
@@ -60,6 +60,7 @@ O projeto é desenvolvido em duas frentes: a lógica e o circuito são validados
 - **Sensor indutivo (pino 12):** alimentado com 12 V. O pino do Nano suporta no máximo 5 V, então use **15 kΩ em série**.
 - **GND comum** para todo o circuito, inclusive para os sensores.
 - **LEDs:** use resistor em série em todos. LED indicador de energia alimentado em 12 V (saída da fonte de alimentação).
+- **`T_PARADA` depende da geometria:** o sensor indutivo fica logo depois do infravermelho de detecção, então o valor deve ser ajustado à velocidade da esteira, à distância entre os dois sensores e à inércia do motor, para a peça parar sobre o indutivo.
 
 ## Como executar
 
@@ -83,7 +84,7 @@ O programa é uma **máquina de estados** executada no `loop()`. Os tempos são 
 |---|---|---|
 | `OCIOSO` | Espera uma peça. Borda de subida da presença liga o motor. | `TRANSPORTE` |
 | `TRANSPORTE` | Peça anda até o sensor de detecção (máximo de 3 s). | `PARANDO` |
-| `PARANDO` | Espera 50 ms e desliga o motor. | `ANALISE` |
+| `PARANDO` | Espera 50 ms, tempo para a peça avançar até o sensor indutivo, e desliga o motor. | `ANALISE` |
 | `ANALISE` | Esteira parada por 2 s. O indutivo é lido durante todo esse tempo e basta um acionamento para classificar como metal. | `METAL_RETIRADA` ou `NAO_METAL_PAUSA` |
 | `METAL_RETIRADA` | LED de metal e M.R.P. ligados por 5 s. | `METAL_RETORNO` |
 | `METAL_RETORNO` | M.R.P. desligado, aguarda 2 s o retorno do mecanismo e apaga o LED de metal. | `METAL_FIM` |
@@ -100,13 +101,13 @@ O programa é uma **máquina de estados** executada no `loop()`. Os tempos são 
 
 ### Tempos configuráveis
 
-Ficam no início do `sketch.ino`:
+Ficam no início do `Código C++`:
 
 | Constante | Valor | Uso |
 |---|---|---|
 | `T_DEBOUNCE` | 50 ms | Filtro do sensor de presença |
 | `T_PISCA` | 250 ms | Tempo aceso e apagado do LED de erro |
-| `T_PARADA` | 50 ms | Folga entre a detecção e a parada do motor |
+| `T_PARADA` | 50 ms | Tempo para a peça avançar do sensor de detecção até o indutivo antes de o motor parar |
 | `T_ANALISE` | 2000 ms | Duração da análise |
 | `T_MRP` | 5000 ms | M.R.P. ligado |
 | `T_RETORNO` | 2000 ms | Retorno do M.R.P. |
