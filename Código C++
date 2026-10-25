@@ -1,58 +1,269 @@
-//Versão mais básica funcional (LED de alerta de falhas não programado ainda)
-
 /************************************************************************************************************
-Trabalho Interdiciplinar 2026.2
+Trabalho Interdisciplinar 2026.2
 
 Esteira Seletora de Materiais Metálicos
 
+Antônio Martins Junior 
 Cairo Araújo Lima
 Guilherme Henrique Faria
-Jõao Paulo Braga
+João Paulo Braga
 Lucas Salles Santana Ferreira
 Philipe Eduardo Faria
 *************************************************************************************************************/
-//declaração das variáveis
-bool sensorIndutivo, sensorPresencaDeObjeto, sensorPontoDeDeteccao;
 
-  #define I INPUT
-  #define O OUTPUT
-  #define H HIGH
-  #define L LOW
+//definição dos pinos
+#define MOTOR            2   //relé do motor da esteira
+#define LED_METAL        3   //indica material metálico
+#define LED_NAO_METAL    4   //indica material não metálico
+#define LED_ERRO         5   //LED amarelo de erro
+#define TRIGGER_MRP      6   //aciona o M.R.P.
+#define SENSOR_DETECCAO  10  //infravermelho do ponto de detecção
+#define SENSOR_PRESENCA  11  //infravermelho de presença (início do processo)
+#define SENSOR_INDUTIVO  12  //indutivo (identifica metal)
+
+//lógica do módulo de relé:
+//true  = relé liga com nível HIGH
+//false = relé liga com nível LOW (comum em módulos reais)
+//se o LED do motor já nascer aceso na simulação, troque este valor
+#define RELE_ATIVO_EM_ALTO true
+
+//estados do processo
+#define OCIOSO             0
+#define TRANSPORTE         1
+#define PARANDO            2
+#define ANALISE            3
+#define METAL_RETIRADA     4
+#define METAL_RETORNO      5
+#define METAL_FIM          6
+#define NAO_METAL_PAUSA    7
+#define NAO_METAL_ESTEIRA  8
+#define ERRO               9
+#define AGUARDA_LIBERAR    10
+
+//erros: o valor é a quantidade de piscadas do LED amarelo
+#define ERRO_PARADO_INICIO    3  //peça parada sobre o sensor de entrada
+#define ERRO_NAO_CHEGOU       4  //peça saiu da entrada mas não chegou à detecção
+#define ERRO_FORA_PADRAO      5  //peça longa: cobre os dois sensores ao mesmo tempo
+#define ERRO_DOIS_OBJETOS     6  //nova peça na entrada com o ciclo em andamento
+#define ERRO_SEM_ENTRADA      7  //detecção acionada sem passar pela entrada
+#define ERRO_PARADO_DETECCAO  8  //peça não saiu do ponto de detecção
+
+//tempos (ms)
+#define T_DEBOUNCE           50  //filtro de ruído do sensor de presença
+#define T_PISCA             250  //duração do LED de erro aceso/apagado
+#define T_PARADA             50
+#define T_ANALISE            2000
+#define T_MRP                5000
+#define T_RETORNO            2000
+#define T_FIM_METAL          500
+#define T_NAO_METAL_PAUSA    500
+#define T_NAO_METAL_ESTEIRA  5000
+#define T_MAX_TRANSPORTE     3000  //tempo máximo da entrada até a detecção
+#define T_MAX_LIBERACAO      2000  //tempo máximo para a peça sair da detecção
+#define T_REPETE_ERRO        3000  //repete a sinalização enquanto a peça não for retirada
+
+//declaração das variáveis
+bool sensorPresencaDeObjeto, sensorPontoDeDeteccao;
+bool entradaAnterior = false;     //último nível estável do sensor de presença
+bool metalDetectado = false;      //vira true se o indutivo acionar durante a análise
+byte estado = OCIOSO;
+byte codigoErro = 0;
+unsigned long tempoAtual = 0, tempoInicio = 0;
+unsigned long ultimaBorda = 0;    //instante da última mudança aceita (debounce)
+
+//controle do pisca de erro (sem delay)
+bool sinalizando = false;
+bool ledErroLigado = false;
+byte transicoesRestantes = 0;
+unsigned long tempoPisca = 0;
+
+//liga/desliga o motor respeitando a lógica do módulo de relé
+void motor(bool ligado) {
+  digitalWrite(MOTOR, (ligado == RELE_ATIVO_EM_ALTO) ? HIGH : LOW);
+}
 
 void setup() {
-//definição das entradas e saídas (INPUT's e OUTPUT's)
-      pinMode(2,O), pinMode(3,O), pinMode(4,O), pinMode(5,O), pinMode(6,O);
-      pinMode(10,I),pinMode(11,I),pinMode(12,I);
+  //definição das entradas e saídas (INPUT's e OUTPUT's)
+  pinMode(MOTOR, OUTPUT);
+  pinMode(LED_METAL, OUTPUT);
+  pinMode(LED_NAO_METAL, OUTPUT);
+  pinMode(LED_ERRO, OUTPUT);
+  pinMode(TRIGGER_MRP, OUTPUT);
+  pinMode(SENSOR_DETECCAO, INPUT);   //pull-down externo, não usar INPUT_PULLUP
+  pinMode(SENSOR_PRESENCA, INPUT);
+  pinMode(SENSOR_INDUTIVO, INPUT);
+
+  //garante tudo desligado na partida
+  motor(false);
+  digitalWrite(LED_METAL, LOW);
+  digitalWrite(LED_NAO_METAL, LOW);
+  digitalWrite(LED_ERRO, LOW);
+  digitalWrite(TRIGGER_MRP, LOW);
+}
+
+//parada segura e registro do erro
+void falha(byte codigo) {
+  motor(false);
+  digitalWrite(LED_METAL, LOW);
+  digitalWrite(LED_NAO_METAL, LOW);
+  digitalWrite(TRIGGER_MRP, LOW);
+  digitalWrite(LED_ERRO, LOW);
+  sinalizando = false;
+  codigoErro = codigo;
+  estado = ERRO;
 }
 
 void loop() {
-//atribuíndo às variáveis as leituras dos sensores
-sensorPresencaDeObjeto = digitalRead(11);
-sensorPontoDeDeteccao = digitalRead(10);
+  tempoAtual = millis();
 
-//bloco de código da lógica de separação dos materiais 
-  if(sensorPresencaDeObjeto==H)
-  digitalWrite(2,H);
-  
-  if(sensorPontoDeDeteccao==H){
-    delay(50);
-    digitalWrite(2,L);
-    delay(2000);
-    sensorIndutivo = digitalRead(12);
-  if(sensorIndutivo==H){
-    digitalWrite(3,H);
-    digitalWrite(6,H);
-    delay(5000);
-    digitalWrite(6,L);
-    delay(2000);
-    digitalWrite(3,L);
-    delay(500);
-  } else{
-    digitalWrite(4,H);
-    delay(500);
-    digitalWrite(2,H);
-    delay(5000);
-    digitalWrite(4,L);
-    digitalWrite(2,L);
-  }}
+  //leitura do sensor de presença com debounce:
+  //só aceita uma mudança de nível se passou T_DEBOUNCE desde a última aceita
+  bool leitura = digitalRead(SENSOR_PRESENCA);
+  bool bordaEntrada = false;
+  if(leitura != entradaAnterior && tempoAtual - ultimaBorda > T_DEBOUNCE){
+    ultimaBorda = tempoAtual;
+    entradaAnterior = leitura;
+    bordaEntrada = (leitura == HIGH);   //borda de subida: peça acabou de chegar
+  }
+  sensorPresencaDeObjeto = entradaAnterior;
+  sensorPontoDeDeteccao = digitalRead(SENSOR_DETECCAO);
+
+  //erro: nova peça na entrada enquanto um ciclo está em andamento
+  if(bordaEntrada && estado >= TRANSPORTE && estado <= NAO_METAL_ESTEIRA){
+    falha(ERRO_DOIS_OBJETOS);
+  }
+
+  //bloco de código da lógica de separação dos materiais e da detecção de falhas
+  switch(estado){
+
+    case OCIOSO:
+      if(sensorPontoDeDeteccao == HIGH){
+        falha(ERRO_SEM_ENTRADA);
+      } else if(bordaEntrada){
+        motor(true);
+        estado = TRANSPORTE;
+        tempoInicio = tempoAtual;
+      }
+      break;
+
+    case TRANSPORTE:
+      if(sensorPontoDeDeteccao == HIGH){
+        if(sensorPresencaDeObjeto == HIGH){
+          falha(ERRO_FORA_PADRAO);
+        } else {
+          estado = PARANDO;
+          tempoInicio = tempoAtual;
+        }
+      } else if(tempoAtual - tempoInicio >= T_MAX_TRANSPORTE){
+        if(sensorPresencaDeObjeto == HIGH){
+          falha(ERRO_PARADO_INICIO);
+        } else {
+          falha(ERRO_NAO_CHEGOU);
+        }
+      }
+      break;
+
+    case PARANDO:
+      if(tempoAtual - tempoInicio >= T_PARADA){
+        motor(false);
+        metalDetectado = false;      //zera antes de começar a análise
+        estado = ANALISE;
+        tempoInicio = tempoAtual;
+      }
+      break;
+
+    case ANALISE:
+      //lê o indutivo durante toda a análise: basta acionar uma vez
+      if(digitalRead(SENSOR_INDUTIVO) == HIGH){
+        metalDetectado = true;
+      }
+      if(tempoAtual - tempoInicio >= T_ANALISE){
+        tempoInicio = tempoAtual;
+        if(metalDetectado){
+          digitalWrite(LED_METAL, HIGH);
+          digitalWrite(TRIGGER_MRP, HIGH);
+          estado = METAL_RETIRADA;
+        } else {
+          digitalWrite(LED_NAO_METAL, HIGH);
+          estado = NAO_METAL_PAUSA;
+        }
+      }
+      break;
+
+    case METAL_RETIRADA:
+      if(tempoAtual - tempoInicio >= T_MRP){
+        digitalWrite(TRIGGER_MRP, LOW);
+        estado = METAL_RETORNO;
+        tempoInicio = tempoAtual;
+      }
+      break;
+
+    case METAL_RETORNO:
+      if(tempoAtual - tempoInicio >= T_RETORNO){
+        digitalWrite(LED_METAL, LOW);
+        estado = METAL_FIM;
+        tempoInicio = tempoAtual;
+      }
+      break;
+
+    case METAL_FIM:
+      if(tempoAtual - tempoInicio >= T_FIM_METAL){
+        if(sensorPontoDeDeteccao == HIGH){
+          falha(ERRO_PARADO_DETECCAO);
+        } else {
+          estado = OCIOSO;
+        }
+      }
+      break;
+
+    case NAO_METAL_PAUSA:
+      if(tempoAtual - tempoInicio >= T_NAO_METAL_PAUSA){
+        motor(true);
+        estado = NAO_METAL_ESTEIRA;
+        tempoInicio = tempoAtual;
+      }
+      break;
+
+    case NAO_METAL_ESTEIRA:
+      if(tempoAtual - tempoInicio >= T_MAX_LIBERACAO && sensorPontoDeDeteccao == HIGH){
+        falha(ERRO_PARADO_DETECCAO);
+      } else if(tempoAtual - tempoInicio >= T_NAO_METAL_ESTEIRA){
+        motor(false);
+        digitalWrite(LED_NAO_METAL, LOW);
+        estado = OCIOSO;
+      }
+      break;
+
+    case ERRO:
+      //pisca o LED amarelo "codigoErro" vezes, sem travar o loop
+      if(!sinalizando){
+        sinalizando = true;
+        transicoesRestantes = codigoErro * 2;   //cada piscada = ligar + desligar
+        ledErroLigado = true;
+        digitalWrite(LED_ERRO, HIGH);
+        transicoesRestantes--;
+        tempoPisca = tempoAtual;
+      } else if(tempoAtual - tempoPisca >= T_PISCA){
+        tempoPisca = tempoAtual;
+        ledErroLigado = !ledErroLigado;
+        digitalWrite(LED_ERRO, ledErroLigado ? HIGH : LOW);
+        transicoesRestantes--;
+        if(transicoesRestantes == 0){
+          digitalWrite(LED_ERRO, LOW);
+          sinalizando = false;
+          estado = AGUARDA_LIBERAR;
+          tempoInicio = tempoAtual;
+        }
+      }
+      break;
+
+    case AGUARDA_LIBERAR:
+      //só volta a operar quando os dois sensores estiverem livres
+      if(sensorPresencaDeObjeto == LOW && sensorPontoDeDeteccao == LOW){
+        estado = OCIOSO;
+      } else if(tempoAtual - tempoInicio >= T_REPETE_ERRO){
+        estado = ERRO;
+      }
+      break;
+  }
 }
