@@ -37,7 +37,7 @@ O projeto é desenvolvido em duas frentes: a lógica e o circuito são validados
 | Sensor infravermelho de presença (PNP, 5 V) | Início do processo, peça colocada na esteira | Botão 2 (tecla `2`) | Sensor infravermelho |
 | Sensor infravermelho de detecção (PNP, 5 V) | Ponto de análise | Botão 3 (tecla `3`) | Sensor infravermelho |
 | Módulo relé | Aciona o motor da esteira | Módulo relé | Módulo relé |
-| Motor da esteira | Move a peça | LED ciano (12 V) | Motor da esteira |
+| Motor da esteira | Move a peça | LED ciano no módulo relé) | Motor da esteira |
 | M.R.P. | Retira a peça metálica | LED no pino 6 | Mecanismo de retirada |
 | LEDs indicadores | Metal, não metal e erro | LEDs | LEDs |
 
@@ -64,7 +64,7 @@ O projeto é desenvolvido em duas frentes: a lógica e o circuito são validados
 ## Como executar
 
 **No Wokwi**
-1. Abra o projeto no Wokwi, ou crie um novo com Arduino Nano e cole o `sketch.ino` e o `diagram.json`.
+1. Abra o projeto no Wokwi através do link fornecido. 
 2. Clique em **Start Simulation**.
 3. Use o mouse nos botões ou as teclas `1`, `2` e `3`. As teclas são úteis para manter dois botões pressionados ao mesmo tempo.
 
