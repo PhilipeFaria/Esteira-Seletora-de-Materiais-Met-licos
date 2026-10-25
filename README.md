@@ -5,7 +5,7 @@ Trabalho Interdisciplinar 2026.2
 Instituto Federal de Minas Gerais (IFMG), Campus Itabirito
 Bacharelado em Engenharia Elétrica
 
-Protótipo de uma esteira que recebe uma peça, a posiciona sob um sensor indutivo, identifica se ela é metálica e a direciona: peças **metálicas** são retiradas pelo M.R.P., peças **não metálicas** seguem pela esteira até serem descartadas. O sistema também detecta e sinaliza falhas de operação.
+Protótipo de uma esteira que recebe uma peça, a posiciona sob um sensor indutivo, identifica se ela é metálica e a direciona: peças **metálicas** são retiradas pelo M.R.P., peças **não metálicas** seguem pela esteira até serem armazenadas em um recipiente. O sistema também detecta e sinaliza falhas de operação.
 
 O projeto é desenvolvido em duas frentes: a lógica e o circuito são validados no simulador [Wokwi](https://wokwi.com) e depois a esteira é construída fisicamente como protótipo. O mesmo código (`Código C++`) serve às duas.
 
