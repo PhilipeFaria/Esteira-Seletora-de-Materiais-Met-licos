@@ -56,12 +56,10 @@ O projeto é desenvolvido em duas frentes: a lógica e o circuito são validados
 
 ## Notas sobre o circuito
 
-- **Entradas com pull-down externo de 10 kΩ.** No código elas são `INPUT` (nunca `INPUT_PULLUP`) e a lógica é **ativa em HIGH**, compatível com sensores de saída PNP.
 - **Sensores infravermelhos (pinos 10 e 11):** alimentados com 5 V, sem necessidade de resistor em série.
-- **Sensor indutivo (pino 12):** alimentado com 12 V. O pino do Nano suporta no máximo 5 V, então use **15 kΩ em série** com o pull-down de 10 kΩ (divisor, cerca de 4,8 V no pino). Com 22 kΩ o resultado é cerca de 3,75 V.
+- **Sensor indutivo (pino 12):** alimentado com 12 V. O pino do Nano suporta no máximo 5 V, então use **15 kΩ em série**.
 - **GND comum** para todo o circuito, inclusive para os sensores.
-- **Relé:** o código assume módulo ativo em HIGH. Se o motor ligar na partida ou funcionar ao contrário, mude `RELE_ATIVO_EM_ALTO` para `false` no início do `sketch.ino`.
-- **LEDs:** use resistor em série em todos. O LED do pino 6 no Wokwi precisa de cerca de 220 Ω e o LED do motor, alimentado em 12 V, de cerca de 680 Ω a 1 kΩ.
+- **LEDs:** use resistor em série em todos. LED indicador de energia alimentado em 12 V (saída da fonte de alimentação).
 
 ## Como executar
 
